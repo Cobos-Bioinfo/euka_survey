@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from scripts.ete_utils import get_descendant_taxids, get_name_from_taxid, get_rank_from_taxid
+from scripts.ete_utils import get_species_and_subspecies, get_name_from_taxid, get_rank_from_taxid
 
 
 # ---------------------------------------------------------------------------
@@ -146,7 +146,7 @@ def summarize_clade(
     Returns (CladeSummary, descendants) — descendants are returned so the
     caller can reuse them for TSV export without re-expanding the clade.
     """
-    descendants = get_descendant_taxids(taxid)
+    descendants = list(get_species_and_subspecies(taxid))
     total_organisms = len(descendants)
 
     feature_counts = _query_features_chunked(conn, descendants)

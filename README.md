@@ -48,5 +48,31 @@ cut -f1 eukaryote_phyla.txt | xargs python query_clade.py --db eukaryote_taxid_f
 The output file is tab-separated (taxid + name) rather than taxid-only so it's human-readable, but `query_clade.py --file` only needs the taxid column — which is why the `cut -f1` above is useful if you want to pipe them directly.
 A quick note on valid rank strings for ete3: `superkingdom`, `kingdom`, `phylum`, `class`, `order`, `family`, `genus`, `species` are the standard ones. The script will just return nothing if you typo the rank, so it prints a clear error in that case.
 
-# NOTE
-It is a design feature that all queries + the datbase itself include the intermediate nodes in the taxonomic tree. This means that if you query for a family, you will also get the genus and species taxids that are descendants of that family. This is intentional to allow users to easily get all the relevant taxids for a given clade without needing to do multiple queries. This means that it not only includes the 'organism-level leafs'
+# Get all species AND subspecies
+## Retrieving All Species and Subspecies from NCBI Taxonomy
+
+### Objective
+Retrieve all taxonomic IDs (taxIDs) belonging to species **and** subspecies under a given parent taxon using the `ete3` library and its NCBI taxonomy database.
+
+### Problem
+`ete3`'s `get_descendant_taxa()` behaves as follows depending on the `collapse_subspecies` flag:
+- `collapse_subspecies=True` — returns **species only**, subspecies are collapsed into their parent species.
+- `collapse_subspecies=False` — returns **subspecies only**, parent species that have subspecies under them are excluded.
+
+The issue is that collapse_subspecies=True triggers an extremely expensive operation when called on a large clade like Eukaryotes (taxid 2759).
+
+
+What's happening: When collapse_subspecies=True, ete3's get_descendant_taxa() doesn't just return taxids — it:
+
+Traverses the entire tree to find all descendants
+For each taxid, queries the database to check its rank
+Filters out subspecies/varietas/formas by comparing ranks
+Validates parent-child relationships in the lineage
+
+For Eukaryotes, you're dealing with:
+
+~2.7 million taxids with collapse=False
+Potentially millions of database lookups with collapse=True
+
+### Solution
+Bypass `get_descendant_taxa()` entirely and query the ete3 SQLite database directly using a **single recursive CTE**. This walks the full subtree in one pass inside the database engine, streaming rows out one at a time and keeping memory usage constant regardless of tree size. The query filters for all target ranks — `species`, `subspecies`, `varietas`, `forma`, and `strain` — in a single call, replicating the union result without the memory overhead.

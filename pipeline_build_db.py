@@ -3,7 +3,7 @@ import time
 import datetime
 from pathlib import Path
 
-from scripts.ete_utils import get_descendant_taxids, get_descendant_organisms_taxids
+from scripts.ete_utils import get_species_and_subspecies
 
 from scripts.build_db.get_assemblies import get_assemblies
 from scripts.build_db.get_annotations import fetch_annotrieve_annotations
@@ -18,9 +18,9 @@ def main():
 
     # 1. Get all taxonomic IDs
     print("\n[1/5] Getting all descendant organisms...")
-    print("Fetching descendant taxa from NCBI via ete3...")
-    all_taxids = set(get_descendant_organisms_taxids(EUKARYOTE_TXID))
-    print(f"  Found {len(all_taxids)} descendant taxa")
+    print("Fetching descendant organisms from NCBI via ete3...")
+    all_taxids = set(get_species_and_subspecies(EUKARYOTE_TXID))
+    print(f"  Found {len(all_taxids)} tree leaves (species, subspecies, varietas, forma, strain) under Eukaryota (taxid {EUKARYOTE_TXID})")
     
     # 2. Get assemblies
     print("\n[2/5] Getting assembly taxids...")
@@ -42,7 +42,7 @@ def main():
     print(f"  Long-read unique taxa: {len(long_read_taxids)}")
     print(f"  Short-read unique taxa: {len(short_read_taxids)}")
     if 9606 not in short_read_taxids.keys() or 10090 not in short_read_taxids.keys():
-        print(f"  [DISCLAIMER] Humans (9606) and mice (10090) were excluded from the query to greatly reduce the number of records")
+        print(f"  [WARNING] Humans (9606) and mice (10090) were excluded from the query to greatly reduce the number of records")
     
     # 5. Build database
     print("\n[5/5] Building SQLite database...")
