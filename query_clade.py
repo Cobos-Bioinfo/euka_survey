@@ -203,10 +203,14 @@ def write_tsv(
     descendants: list[int],
     feature_rows: dict[int, tuple[int, int, int, int]],
     tsv_dir: str,
+    include_empty: bool = False,
 ) -> str:
     """
     Write one TSV file for a clade: one row per descendant taxID.
-    TaxIDs absent from the DB are written with all counts as 0.
+
+    By default, taxIDs absent from the DB (all counts zero) are omitted.
+    Pass include_empty=True to write a row for every descendant regardless.
+
     Returns the path of the written file.
     """
     safe_name = summary.name.replace(" ", "_")
@@ -218,6 +222,8 @@ def write_tsv(
         writer.writeheader()
         for taxid in sorted(descendants):
             counts = feature_rows.get(taxid, (0, 0, 0, 0))
+            if not include_empty and counts == (0, 0, 0, 0):
+                continue
             writer.writerow({
                 "taxid":            taxid,
                 "short_read_count": counts[0],
@@ -265,6 +271,12 @@ def parse_args() -> argparse.Namespace:
         type=str,
         metavar="DIR",
         help="Directory to write per-clade TSV files (one file per queried clade).",
+    )
+    parser.add_argument(
+        "--include-empty",
+        action="store_true",
+        help="When writing TSV files, include rows for taxIDs with no data "
+             "(all counts zero). Has no effect without --tsv.",
     )
     return parser.parse_args()
 
@@ -318,7 +330,10 @@ def main() -> None:
 
                 if args.tsv:
                     feature_rows = _query_all_taxid_features(conn, descendants)
-                    filepath = write_tsv(summary, descendants, feature_rows, args.tsv)
+                    filepath = write_tsv(
+                        summary, descendants, feature_rows, args.tsv,
+                        include_empty=args.include_empty,
+                    )
                     print(f"  TSV written: {filepath}", file=sys.stderr)
 
             except Exception as e:

@@ -1,78 +1,84 @@
 # Eukaryote Survey
 
-A set of tools to track and build a database of eukaryotic taxonomic IDs and their associated genomic features (assemblies, annotations, and RNA-seq reads). 
+## Description
+This project provides an automated data aggregation pipeline and exploration toolkit that catalogues genomic sequencing data across the entire Eukaryotic tree of life. It tracks whole genome assemblies, functional annotations, and RNA-seq reads (divided into short- and long-reads) to build a fast, queryable local SQLite database.
+
+**Main Use Case:** Identifying clades, families, or species that lack specific types of sequencing data, or discovering clades rich in genomic resources for comparative studies. 
+
+**Target Users:** Bioinformaticians, evolutionary biologists, and comparative genomicists conducting broad taxonomic surveys or meta-analyses who need to evaluate available molecular resources without manually navigating NCBI or ENA portals.
+
+## Features
+- **Data Aggregation**: Automatically fetches data from NCBI Datasets, Annotrieve API, and EBI ENA API.
+- **High-Performance Taxonomy Traversal**: Uses a highly optimized SQLite CTE query to bypass standard Python-level tree traversals, ensuring massive trees (like all Eukaryotes) are expanded rapidly.
+- **Local Relational Database**: Consolidates gathered metrics into a portable SQLite database for rapid downstream querying and summation.
+- **Detailed TSV Exports**: Dumps organism-by-organism resource metrics into TSVs ready for graphing or further downstream analysis.
 
 ## Project Structure
+- `pipeline_build_db.py`: The main execution script. Orchestrates data collection across modules and triggers database construction.
+- `query_clade.py`: The primary CLI reporting tool to explore and summarize genomic data availability for specific taxonomic clades.
+- `get_taxa_by_rank.py`: A helper CLI tool to extract all descendent taxa at a specified taxonomic rank (e.g., phylum, class) under a given root.
+- `ete_utils.py`: The optimized routing and taxonomy traversal backbone using recursive SQL Common Table Expressions (CTE).
+- `build_db`: Directory containing specific modular fetchers:
+  - `get_assemblies.py`: Retrieves sequenced genome assembly stats using the NCBI Datasets CLI.
+  - `get_annotations.py`: Retrieves functional annotation frequencies from the Annotrieve API.
+  - `get_reads.py`: Fetches long and short RNA-seq read runs from the EBI ENA portal.
+  - `build_database.py`: Handles creation, population, and `INSERT OR REPLACE` logic for the SQLite database.
 
-- `build_db.py` - The main orchestrator script that runs the pipeline to fetch data and construct the database.
-- `scripts/build_db/` - Subdirectory containing the modules used to fetch data from different sources:
-  - `get_taxids.py`: Retrieves descendant taxonomic IDs from NCBI using `ete3`.
-  - `get_assemblies.py`: Fetches assembly information via the NCBI datasets CLI.
-  - `get_annotations.py`: Retrieves annotation data from Annotrieve.
-  - `get_reads.py`: Fetches short and long RNA-seq reads from the ENA portal API.
-  - `build_database.py`: Handles the SQLite database creation and data insertion.
-
-## Prerequisites
-
-1. **Conda Environment**: Create and activate the Conda environment using the provided `environment.yml` file:
+## Installation
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Cobos-Bioinfo/euka_survey.git
+   cd euka_survey
+   ```
+2. **Install Python dependencies:**
+   Use the provided environment.yml file to create a conda environment:
    ```bash
    conda env create -f environment.yml
-   conda activate euk_survey
+   conda activate euka_tracker
    ```
+3. **Install External Requirements:**
+   Installing the [NCBI Datasets CLI](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/) tool in your PATH is required for gathering assembly data.
 
-2. **NCBI Datasets CLI**: The `get_assemblies.py` script requires the `datasets` command-line tool.
-   Install instructions: [NCBI Datasets CLI](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/)
+### Docker Option:
+A Docker image option is in development. For users preferring containerization, a Dockerfile will be provided to encapsulate all dependencies and tools, allowing execution without local environment setup.
+
 
 ## Usage
 
 ### 1. Build the Database
-To fetch current data and build the local SQLite database, run:
+Construct the local SQLite database containing organism metrics. (Note: Currently hardcoded for all Eukaryotes, taxID 2759):
 ```bash
 python pipeline_build_db.py
 ```
-This will create a dated SQLite database file (e.g., `eukaryote_taxid_features_YYYY_MM_DD.db`) in the root directory. Expected runtime depends on network delays, but usually completes in ~2-3 minutes.
+*Output: `eukaryote_taxid_features_YYYY_MM_DD.db`*
 
-## Query the Database
-Use `get_taxa_by_rank.py` to obtain a tsv file of taxonomic IDs - names for a specified taxonomic rank (e.g., "family", "genus", "species"):
+### 2. Discover Clades by Rank
+Find taxonomic IDs for specific lineages (e.g., finding the taxIDs for all eukaryotic phyla):
 ```bash
-# Print to terminal
-python get_taxa_by_rank.py 2759 phylum
-
-# Save to file (tab-separated: taxid + name)
-python get_taxa_by_rank.py 2759 phylum --out eukaryote_phyla.txt
-
-# Feed the taxIDs directly into the CLI (cuts the first column)
-python get_taxa_by_rank.py 2759 phylum --out eukaryote_phyla.txt
-cut -f1 eukaryote_phyla.txt | xargs python query_clade.py --db eukaryote_taxid_features_2026_03_19.db
+python get_taxa_by_rank.py <root_taxid> <rank>
 ```
-The output file is tab-separated (taxid + name) rather than taxid-only so it's human-readable, but `query_clade.py --file` only needs the taxid column — which is why the `cut -f1` above is useful if you want to pipe them directly.
-A quick note on valid rank strings for ete3: `superkingdom`, `kingdom`, `phylum`, `class`, `order`, `family`, `genus`, `species` are the standard ones. The script will just return nothing if you typo the rank, so it prints a clear error in that case.
 
-# Get all species AND subspecies
-## Retrieving All Species and Subspecies from NCBI Taxonomy
+### 3. Query Target Clades
+Summarize absolute feature counts and unique organism breakdowns for lineages of interest. Can be done natively, via piped input, or from a tracking file:
+```bash
+# Query an individual clade
+python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db
 
-### Objective
-Retrieve all taxonomic IDs (taxIDs) belonging to species **and** subspecies under a given parent taxon using the `ete3` library and its NCBI taxonomy database.
+# Output detailed per-species statistics to TSV
+python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db --tsv ./results_directory/
+```
 
-### Problem
-`ete3`'s `get_descendant_taxa()` behaves as follows depending on the `collapse_subspecies` flag:
-- `collapse_subspecies=True` — returns **species only**, subspecies are collapsed into their parent species.
-- `collapse_subspecies=False` — returns **subspecies only**, parent species that have subspecies under them are excluded.
+## Workflow Overview
+1. **Initialization:** User ensures dependencies and NCBI Datasets CLI tool are correctly configured in their environment.
+2. **Data Aggregation:** `pipeline_build_db.py` identifies relevant descendants via `ete_utils.py`. The pipeline successively queries external databases (NCBI, Annotrieve, ENA) via the specialized submodules to retrieve count dictionaries in memory. Finally, `build_database.py` generates the cohesive, localized SQLite file.
+3. **Exploration & Discovery:** User explores specific ranks using `get_taxa_by_rank.py` to isolate taxids of interest.
+4. **Summary & Evaluation:** Users execute `query_clade.py` against the constructed database, yielding high-level statistical summaries or detailed per-species TSV dumps for downstream evaluation.
 
-The issue is that collapse_subspecies=True triggers an extremely expensive operation when called on a large clade like Eukaryotes (taxid 2759).
+## Notes / Limitations
+- **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for highly sequenced model organisms.
+- **Hardcoded Root**: The root database creation script (pipeline_build_db.py) relies on a hardcoded top-level taxonomic target (Eukaryota; 2759).
 
-
-What's happening: When collapse_subspecies=True, ete3's get_descendant_taxa() doesn't just return taxids — it:
-
-Traverses the entire tree to find all descendants
-For each taxid, queries the database to check its rank
-Filters out subspecies/varietas/formas by comparing ranks
-Validates parent-child relationships in the lineage
-
-For Eukaryotes, you're dealing with:
-
-~2.7 million taxids with collapse=False
-Potentially millions of database lookups with collapse=True
-
-### Solution
-Bypass `get_descendant_taxa()` entirely and query the ete3 SQLite database directly using a **single recursive CTE**. This walks the full subtree in one pass inside the database engine, streaming rows out one at a time and keeping memory usage constant regardless of tree size. The query filters for all target ranks — `species`, `subspecies`, `varietas`, `forma`, and `strain` — in a single call, replicating the union result without the memory overhead.
+## Future Improvements
+- Implement a new CLI flag to include human and mice RNA-seq data for users interested in those taxa, while maintaining the default exclusion for general surveys.
+- Add a Dockerfile and pre-built image for users who prefer containerized environments.
+- Expand the database schema to include additional metadata fields (e.g., assembly quality metrics)

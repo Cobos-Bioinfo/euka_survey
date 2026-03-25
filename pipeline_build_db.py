@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+pipeline_build_db.py — Build a SQLite database of taxIDs with assemblies, annotations, and reads.
+"""
+
 import sys
 import time
 import datetime
@@ -11,6 +16,7 @@ from scripts.build_db.get_reads import fetch_ena_reads
 from scripts.build_db.build_database import build_database
 
 EUKARYOTE_TXID = 2759
+
 
 def main():
     print("--- Starting Eukaryote Feature Pipeline ---")
