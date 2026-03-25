@@ -17,12 +17,12 @@ This project provides an automated data aggregation pipeline and exploration too
 - `pipeline_build_db.py`: The main execution script. Orchestrates data collection across modules and triggers database construction.
 - `query_clade.py`: The primary CLI reporting tool to explore and summarize genomic data availability for specific taxonomic clades.
 - `get_taxa_by_rank.py`: A helper CLI tool to extract all descendent taxa at a specified taxonomic rank (e.g., phylum, class) under a given root.
-- `ete_utils.py`: The optimized routing and taxonomy traversal backbone using recursive SQL Common Table Expressions (CTE).
-- `build_db`: Directory containing specific modular fetchers:
-  - `get_assemblies.py`: Retrieves sequenced genome assembly stats using the NCBI Datasets CLI.
-  - `get_annotations.py`: Retrieves functional annotation frequencies from the Annotrieve API.
-  - `get_reads.py`: Fetches long and short RNA-seq read runs from the EBI ENA portal.
-  - `build_database.py`: Handles creation, population, and `INSERT OR REPLACE` logic for the SQLite database.
+   - `ete_utils.py`: The optimized routing and taxonomy traversal backbone using recursive SQL Common Table Expressions (CTE).
+   - build_db: Directory containing specific modular fetchers:
+      - `get_assemblies.py`: Retrieves sequenced genome assembly stats using the NCBI Datasets CLI.
+      - `get_annotations.py`: Retrieves functional annotation frequencies from the Annotrieve API.
+      - `get_reads.py`: Fetches long and short RNA-seq read runs from the EBI ENA portal.
+      - `build_database.py`: Handles creation, population, and `INSERT OR REPLACE` logic for the SQLite database.
 
 ## Installation
 1. **Clone the repository:**
@@ -83,13 +83,6 @@ Survey all eukaryotic phylums.
    ```bash
    cut -f1 eukaryote_phyla_taxids.txt | xargs python query_clade.py --db eukaryote_taxid_features_2026_03_24.db --tsv ./phylum_summaries/
    ```
-
-
-## Workflow Overview
-1. **Initialization:** User ensures dependencies and NCBI Datasets CLI tool are correctly configured in their environment.
-2. **Data Aggregation:** `pipeline_build_db.py` identifies relevant descendants via `ete_utils.py`. The pipeline successively queries external databases (NCBI, Annotrieve, ENA) via the specialized submodules to retrieve count dictionaries in memory. Finally, `build_database.py` generates the cohesive, localized SQLite file.
-3. **Exploration & Discovery:** User explores specific ranks using `get_taxa_by_rank.py` to isolate taxids of interest.
-4. **Summary & Evaluation:** Users execute `query_clade.py` against the constructed database, yielding high-level statistical summaries or detailed per-species TSV dumps for downstream evaluation.
 
 ## Notes / Limitations
 - **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for highly sequenced model organisms.
