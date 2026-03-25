@@ -68,6 +68,23 @@ python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db
 python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db --tsv ./results_directory/
 ```
 
+### Example Use Case
+Survey all eukaryotic phylums.
+
+1. Build the database (if not already done):
+   ```bash
+   python pipeline_build_db.py
+   ```
+2. Get all phylum-level taxIDs under Eukaryota:
+   ```bash
+   python get_taxa_by_rank.py 2759 phylum > eukaryote_phyla_taxids.txt
+   ```
+3. Query each phylum for genomic resource summaries:
+   ```bash
+   cut -f1 eukaryote_phyla_taxids.txt | xargs python query_clade.py --db eukaryote_taxid_features_2026_03_24.db --tsv ./phylum_summaries/
+   ```
+
+
 ## Workflow Overview
 1. **Initialization:** User ensures dependencies and NCBI Datasets CLI tool are correctly configured in their environment.
 2. **Data Aggregation:** `pipeline_build_db.py` identifies relevant descendants via `ete_utils.py`. The pipeline successively queries external databases (NCBI, Annotrieve, ENA) via the specialized submodules to retrieve count dictionaries in memory. Finally, `build_database.py` generates the cohesive, localized SQLite file.
