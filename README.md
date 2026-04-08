@@ -84,7 +84,7 @@ Survey all eukaryotic phylums.
    cut -f1 eukaryote_phyla_taxids.txt | xargs python query_clade.py --db eukaryote_taxid_features_2026_03_24.db --tsv ./phylum_summaries/
    ```
 
-## Notes / Limitations
+## Notes
 - **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for highly sequenced model organisms.
 - **Hardcoded Root**: The root database creation script (pipeline_build_db.py) relies on a hardcoded top-level taxonomic target (Eukaryota; 2759).
 
