@@ -68,5 +68,4 @@ if __name__ == "__main__":
     print(f"Verification complete: {count} runs fetched, {len(long_txids)} long-read taxa, {len(short_txids)} short-read taxa.")
     print(f"Sample of long-read taxa and counts: {list(long_txids.items())[:10]}")
     print(f"Sample of short-read taxa and counts: {list(short_txids.items())[:10]}")
-
-    print(f"DISCLAIMER: Humans (9606) and mice (10090) were excluded from the query to greatly reduce the number of records")
+    
