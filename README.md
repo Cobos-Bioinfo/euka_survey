@@ -34,10 +34,8 @@ This project provides an automated data aggregation pipeline and exploration too
    Use the provided environment.yml file to create a conda environment:
    ```bash
    conda env create -f environment.yml
-   conda activate euka_tracker
+   conda activate euka_survey
    ```
-3. **Install External Requirements:**
-   Installing the [NCBI Datasets CLI](https://www.ncbi.nlm.nih.gov/datasets/docs/v2/command-line-tools/download-and-install/) tool in your PATH is required for gathering assembly data.
 
 ### Docker Option:
 A Docker image option is in development. For users preferring containerization, a Dockerfile will be provided to encapsulate all dependencies and tools, allowing execution without local environment setup.
@@ -50,7 +48,8 @@ Construct the local SQLite database containing organism metrics. (Note: Currentl
 ```bash
 python pipeline_build_db.py
 ```
-*Output: `eukaryote_taxid_features_YYYY_MM_DD.db`*
+*Output: `eukaryote_taxid_features_YYYY_MM_DD.db`*  
+> NCBI taxonomy database is downloaded on the first run.
 
 ### 2. Discover Clades by Rank
 Find taxonomic IDs for specific lineages (e.g., finding the taxIDs for all eukaryotic phyla):
@@ -85,7 +84,7 @@ Survey all eukaryotic phylums.
    ```
 
 ## Notes
-- **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for highly sequenced model organisms.
+- **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for these highly sequenced model organisms.
 - **Hardcoded Root**: The root database creation script (pipeline_build_db.py) relies on a hardcoded top-level taxonomic target (Eukaryota; 2759).
 
 ## Future Improvements
