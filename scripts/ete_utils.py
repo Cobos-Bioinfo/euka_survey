@@ -25,12 +25,11 @@ def get_species_and_subspecies(parent_taxid: int) -> set[int]:
         SELECT s.taxid FROM subtree AS t
         JOIN species AS s ON s.taxid = t.taxid
         WHERE s.rank IN ({placeholders})
-        AND s.taxid != ?
     """
 
     conn = sqlite3.connect(NCBI.dbfile)
     try:
-        result = {row[0] for row in conn.execute(query, [parent_taxid] + list(TARGET_RANKS) + [parent_taxid])}
+        result = {row[0] for row in conn.execute(query, [parent_taxid] + list(TARGET_RANKS))}
     finally:
         conn.close()
 
