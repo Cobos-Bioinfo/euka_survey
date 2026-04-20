@@ -97,7 +97,10 @@ Survey all eukaryotic phylums.
    python phylo_divbarchart.py -i eukaryote_phyla/ -o eukaryote_phyla.svg --include-counts
    ```
 
-![Example Visualization](placeholder.svg)
+| |
+|-|
+| <div style="background-color: white;"><img src="demo/eukaryote_phyla.svg"></div> |
+| *Figure: Phylogenetic distribution of genomic resources across eukaryotic phyla.* |
 
 ## Notes
 - **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for these highly sequenced model organisms.
