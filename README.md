@@ -16,6 +16,7 @@ This project provides an automated data aggregation pipeline and exploration too
 ## Project Structure
 - `pipeline_build_db.py`: The main execution script. Orchestrates data collection across modules and triggers database construction.
 - `query_clade.py`: The primary CLI reporting tool to explore and summarize genomic data availability for specific taxonomic clades.
+- `phylo_divbarchart.py`: A visualization utility that consumes TSV summary directories to generate ETE3-based phylogenetic divergent bar charts.
 - `get_taxa_by_rank.py`: A helper CLI tool to extract all descendent taxa at a specified taxonomic rank (e.g., phylum, class) under a given root.
    - `ete_utils.py`: The optimized routing and taxonomy traversal backbone using recursive SQL Common Table Expressions (CTE).
    - build_db: Directory containing specific modular fetchers:
@@ -64,7 +65,15 @@ Summarize absolute feature counts and unique organism breakdowns for lineages of
 python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db
 
 # Output detailed per-species statistics to TSV
-python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db --tsv ./results_directory/
+# Note: --include-empty should be added when planning to visualize the results to ensure taxa with no data are still counted correctly in final visualizations!
+python query_clade.py <taxid> --db eukaryote_taxid_features_YYYY_MM_DD.db --tsv ./results_directory/ --include-empty
+```
+
+### 4. Visualize Results
+Render phylogenetic divergent bar charts comparing assemblies/annotations against RNA-Seq data using the generated `.tsv` summaries.
+```bash
+# NOTE: --include-counts is highly recommended to append a secondary table-like figure with explicit numeric counts for organisms and entries.
+python phylo_divbarchart.py -i ./results_directory/ -o divergent_bars_tree.svg --include-counts
 ```
 
 ### Example Use Case
@@ -74,14 +83,21 @@ Survey all eukaryotic phylums.
    ```bash
    python pipeline_build_db.py
    ```
-2. Get all phylum-level taxIDs under Eukaryota:
+2. Get all phylum-level taxIDs under Eukaryota and query each for genomic resource summaries
    ```bash
-   python get_taxa_by_rank.py 2759 phylum > eukaryote_phyla_taxids.txt
+   python get_taxa_by_rank.py 2759 phylum \
+   | cut -f1 \
+   | xargs python query_clade.py \
+         --db eukaryote_taxid_features_2026_04_08.db \
+         --tsv eukaryote_phyla \
+         --include-empty
    ```
-3. Query each phylum for genomic resource summaries:
+3. Visualize the results across the retrieved phyla via a phylogenetic tree and divergent bar chart:
    ```bash
-   cut -f1 eukaryote_phyla_taxids.txt | xargs python query_clade.py --db eukaryote_taxid_features_2026_03_24.db --tsv ./phylum_summaries/
+   python phylo_divbarchart.py -i eukaryote_phyla/ -o eukaryote_phyla.svg --include-counts
    ```
+
+![Example Visualization](placeholder.svg)
 
 ## Notes
 - **Exclusion of Human/Mouse data**: RNA-seq runs for humans (taxID 9606) and mice (taxID 10090) are explicitly hardcoded to be excluded from ENA queries. This is an intentional project design to avoid significant API bloat and delays for these highly sequenced model organisms.
